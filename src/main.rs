@@ -2,6 +2,11 @@ use rodio::{source::Repeat, source::Source, Decoder, OutputStream, Sink};
 use std::fs::File;
 use std::io::BufReader;
 
+enum State {
+    Open,
+    Close,
+}
+
 fn load_sound(name: String) -> Repeat<Decoder<BufReader<File>>> {
     println!("loading file");
     let file = BufReader::new(File::open(name).unwrap());
@@ -16,6 +21,18 @@ fn main() {
     let sink = Sink::try_new(&stream_handle).unwrap();
     sink.append(source);
     sink.play();
-
-    std::thread::park();
+    sink.pause();
+    let state: State = State::Open;
+    loop {
+        match state {
+            State::Open => match sink.is_paused() {
+                true => {
+                    println!("starting file");
+                    sink.play();
+                }
+                false => (),
+            },
+            State::Close => sink.pause(),
+        }
+    }
 }
